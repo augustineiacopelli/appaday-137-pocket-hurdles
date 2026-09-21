@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pocket Hurdles | AppADay 137</title>
+<meta name="description" content="A first person hurdles runner you play by jumping and leaning with your phone, or with keys and swipes.">
+<meta name="theme-color" content="#16253F">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,700;1,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#16253F; --deep:#0E1A2E; --track:#B5402F; --chalk:#F3F1EC;
+  --infield:#2E6B45; --mat:#2C5DA8; --glow:#E7B98A; --muted:#A9B4C6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--deep);color:var(--chalk)}
+body{
+  min-height:100dvh;display:flex;flex-direction:column;overflow-x:hidden;
+  font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:500;
+  -webkit-text-size-adjust:100%;
+}
+.bar{display:flex;align-items:center;gap:12px;padding:6px 14px;background:var(--night);flex:0 0 auto}
+header.bar{padding-top:calc(6px + env(safe-area-inset-top,0px))}
+.num{font-style:italic;font-weight:800;font-size:1.7rem;line-height:1;color:var(--glow)}
+.name{font-weight:700;font-size:1.3rem;letter-spacing:.01em}
+.back{
+  margin-left:auto;color:var(--chalk);text-decoration:none;font-weight:700;font-size:1.05rem;
+  min-height:44px;display:inline-flex;align-items:center;padding:0 10px;border-radius:8px;
+}
+.back:hover,.back:focus-visible{background:rgba(243,241,236,.12)}
+footer.bar{justify-content:center;color:var(--muted);font-size:1rem;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px))}
+footer.bar .back{margin-left:0}
+#stage{
+  position:relative;flex:1 1 auto;min-height:420px;overflow:hidden;
+  touch-action:none;overscroll-behavior:none;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+}
+#cv{position:absolute;top:0;left:0;width:100%;height:100%;display:block}
+#hud{position:absolute;top:10px;left:14px;z-index:3;pointer-events:none;display:none;text-shadow:0 2px 6px rgba(0,0,0,.45)}
+#hud.show{display:block}
+#hudDist{font-style:italic;font-weight:800;font-size:clamp(2rem,9vw,3rem);line-height:.95}
+#hudSpd{font-weight:700;font-size:1.05rem;color:var(--glow)}
+#flash{position:absolute;top:0;left:0;right:0;bottom:0;background:#C9302C;opacity:0;pointer-events:none;z-index:3;transition:opacity .35s ease-out}
+#flash.on{opacity:.55;transition:none}
+.panel{
+  position:absolute;top:0;left:0;right:0;bottom:0;z-index:4;display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  padding:24px 20px;text-align:center;background:rgba(14,26,46,.84);
+}
+.panel.show{display:flex}
+.panel.clear{background:rgba(14,26,46,.25)}
+.inner{width:100%;max-width:30rem;display:flex;flex-direction:column;align-items:center;gap:14px}
+h1{font-style:italic;font-weight:800;font-size:clamp(3rem,15vw,5rem);line-height:.86;letter-spacing:-.01em}
+h2{font-style:italic;font-weight:800;font-size:clamp(2.2rem,10vw,3.4rem);line-height:.9}
+.lanes{width:9rem;height:10px;display:flex;gap:6px}
+.lanes span{flex:1;background:var(--track);border-left:2px solid var(--chalk);border-right:2px solid var(--chalk);transform:skewX(-18deg)}
+p{font-size:1.15rem;line-height:1.35;color:#DCE2EC;max-width:28rem}
+p.small{font-size:1rem;color:var(--muted)}
+.btns{display:flex;flex-direction:column;gap:10px;width:100%;max-width:20rem}
+.btn{
+  min-height:48px;padding:0 22px;border-radius:10px;cursor:pointer;
+  font-family:inherit;font-weight:700;font-size:1.25rem;
+  background:var(--chalk);color:var(--night);border:2px solid var(--chalk);
+}
+.btn.alt{background:transparent;color:var(--chalk)}
+.btn:active{transform:translateY(1px)}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--glow);outline-offset:2px}
+.best{font-weight:700;font-size:1.2rem;color:var(--glow)}
+#cdNum{font-style:italic;font-weight:800;font-size:clamp(6rem,34vw,11rem);line-height:1;text-shadow:0 4px 18px rgba(0,0,0,.5)}
+.prog{width:100%;max-width:18rem;height:10px;border-radius:5px;background:rgba(243,241,236,.18);overflow:hidden}
+#calBar{height:100%;width:0;background:var(--glow)}
+.stat{font-style:italic;font-weight:800;font-size:clamp(3rem,14vw,4.6rem);line-height:.9}
+#goNew{display:none;font-weight:700;font-size:1.2rem;color:var(--glow)}
+#goNew.show{display:block}
+.icon-btn{
+  position:absolute;width:44px;height:44px;border-radius:10px;border:0;cursor:pointer;z-index:6;
+  background:rgba(14,26,46,.72);color:var(--chalk);font-family:inherit;font-weight:700;font-size:1rem;
+  display:flex;align-items:center;justify-content:center;gap:5px;
+}
+#pauseBtn{top:10px;right:10px;display:none}
+#pauseBtn.show{display:flex}
+#pauseBtn span{width:5px;height:16px;background:var(--chalk);border-radius:1px}
+#dbgBtn{bottom:10px;right:10px}
+#dbgBtn.on{background:var(--glow);color:var(--night)}
+#debug{
+  position:absolute;left:10px;bottom:10px;z-index:6;display:none;
+  width:15.5rem;max-width:calc(100% - 74px);padding:10px 12px;border-radius:10px;
+  background:rgba(14,26,46,.9);font-size:1rem;line-height:1.25;
+}
+#debug.show{display:block}
+.dgrid{display:grid;grid-template-columns:auto 1fr;column-gap:10px;row-gap:1px;margin-bottom:6px}
+.dgrid span{color:var(--muted)}
+.dgrid b{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.drow{display:flex;align-items:center;gap:6px;min-height:44px}
+.drow .lbl{flex:1;color:var(--muted)}
+.drow b{min-width:2.8rem;text-align:center;font-variant-numeric:tabular-nums}
+.sbtn{width:44px;height:44px;border-radius:8px;border:2px solid var(--chalk);background:transparent;color:var(--chalk);font-family:inherit;font-weight:700;font-size:1.3rem;cursor:pointer}
+.drow input{width:22px;height:22px;accent-color:#E7B98A}
+label.drow{cursor:pointer}
+#toast{
+  position:absolute;left:50%;top:64px;z-index:7;transform:translateX(-50%);
+  width:max-content;max-width:calc(100% - 32px);padding:10px 14px;border-radius:10px;
+  background:var(--chalk);color:var(--night);font-weight:700;font-size:1.05rem;text-align:center;
+  display:none;pointer-events:none;
+}
+#toast.show{display:block}
+@media (min-width:700px){ .name{font-size:1.45rem} }
+</style>
+</head>
+<body>
+<header class="bar">
+  <span class="num">137</span>
+  <span class="name">Pocket Hurdles</span>
+  <a class="back" href="https://augustineiacopelli.github.io/appaday/">All apps</a>
+</header>
+
+<main id="stage">
+  <canvas id="cv" aria-label="Pocket Hurdles track view"></canvas>
+  <div id="hud"><div id="hudDist">0 m</div><div id="hudSpd">8.0 m/s</div></div>
+  <div id="flash"></div>
+
+  <section class="panel show" id="pStart">
+    <div class="inner">
+      <h1>Pocket<br>Hurdles</h1>
+      <div class="lanes" aria-hidden="true"><span></span><span></span><span></span></div>
+      <p>Hold your phone upright and run in place. Jump for real to clear hurdles, lean left or right to change lanes around the blue mats.</p>
+      <div class="btns">
+        <button class="btn" id="bMotion" type="button">Play with Motion</button>
+        <button class="btn alt" id="bTouch" type="button">Play with Touch or Keys</button>
+      </div>
+      <p class="small">Keys: arrows to change lanes, space to jump, P to pause. Touch: swipe to change lanes, tap to jump.</p>
+      <div class="best" id="startBest">No best run yet</div>
+    </div>
+  </section>
+
+  <section class="panel" id="pCal">
+    <div class="inner">
+      <h2>Hold still</h2>
+      <p id="calMsg">Hold your phone upright in front of you and stand still.</p>
+      <div class="prog"><div id="calBar"></div></div>
+      <div class="btns"><button class="btn alt" id="bCalCancel" type="button">Back to menu</button></div>
+    </div>
+  </section>
+
+  <section class="panel clear" id="pCount">
+    <div id="cdNum">3</div>
+  </section>
+
+  <section class="panel" id="pPause">
+    <div class="inner">
+      <h2>Paused</h2>
+      <div class="btns">
+        <button class="btn" id="bResume" type="button">Resume</button>
+        <button class="btn alt" id="bPauseMenu" type="button">Back to menu</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="pOver">
+    <div class="inner">
+      <h2>Clipped it</h2>
+      <div class="stat" id="goDist">0 m</div>
+      <div id="goNew">New best run</div>
+      <div class="best" id="goBest">Best 0 m</div>
+      <div class="btns">
+        <button class="btn" id="bAgain" type="button">Run again</button>
+        <button class="btn alt" id="bMenu" type="button">Back to menu</button>
+      </div>
+    </div>
+  </section>
+
+  <button class="icon-btn" id="pauseBtn" type="button" aria-label="Pause"><span></span><span></span></button>
+  <button class="icon-btn" id="dbgBtn" type="button" aria-label="Toggle debug overlay" aria-pressed="false">Dbg</button>
+
+  <div id="debug" aria-live="off">
+    <div class="dgrid">
+      <span>r</span><b id="dR">-</b>
+      <span>magnitude</span><b id="dMag">-</b>
+      <span>roll offset</span><b id="dRoll">-</b>
+      <span>lane target</span><b id="dLane">-</b>
+      <span>jump state</span><b id="dJump">-</b>
+      <span>fps</span><b id="dFps">-</b>
+      <span>thresholds</span><b id="dThr">-</b>
+    </div>
+    <div class="drow"><span class="lbl">Spike</span><button class="sbtn" id="spMinus" type="button" aria-label="Lower spike threshold">-</button><b id="dSpike">1.6</b><button class="sbtn" id="spPlus" type="button" aria-label="Raise spike threshold">+</button></div>
+    <div class="drow"><span class="lbl">Lean</span><button class="sbtn" id="lnMinus" type="button" aria-label="Lower lean threshold">-</button><b id="dLean">12</b><button class="sbtn" id="lnPlus" type="button" aria-label="Raise lean threshold">+</button></div>
+    <label class="drow"><input type="checkbox" id="invert"> <span>Invert lean</span></label>
+  </div>
+
+  <div id="toast" role="status"></div>
+</main>
+
+<footer class="bar">
+  <a class="back" href="https://augustineiacopelli.github.io/appaday/">AppADay portfolio</a>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  var CONFIG = {
+    lanes: [-1.2, 0, 1.2], camH: 1.5, focal: 0.9, drawDist: 60, near: 0.5,
+    hurdleH: 0.5, hurdleD: 0.1, blockH: 2.2, blockD: 1.0, trackHalf: 1.8,
+    speedStart: 8, speedRamp: 0.15, speedCap: 20,
+    airtime: 0.65, peak: 1.1, laneLerp: 10,
+    bobAmp: 0.05, bobFreq: 2.2, maxRoll: 4,
+    spike: 1.6, freeFall: 0.35, armWindow: 350, cooldown: 700,
+    leanEnter: 12, leanExit: 6, bandLo: 0.7, bandHi: 1.3,
+    rollAlpha: 0.15, vertAlpha: 0.5,
+    calSeconds: 3, calStill: 0.6,
+    gapAdjacent: 1.3, gapTwo: 2.0, gapRand: 0.8, opening: 3
+  };
+
+  var REDUCE = false;
+  try { REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+  if (REDUCE) { CONFIG.bobAmp = 0; CONFIG.maxRoll = 0; }
+
+  /* ---------- storage ---------- */
+  var KEYS = {
+    best: 'appaday137-best', debug: 'appaday137-debug', invert: 'appaday137-invert',
+    spike: 'appaday137-spike', lean: 'appaday137-lean'
+  };
+  function load(key, fallback) {
+    try {
+      var v = localStorage.getItem(key);
+      if (v === null) return fallback;
+      return JSON.parse(v);
+    } catch (e) { return fallback; }
+  }
+  function save(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+  }
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+
+  var best = Math.max(0, Math.floor(+load(KEYS.best, 0) || 0));
+  var settings = {
+    spike: clamp(+load(KEYS.spike, CONFIG.spike) || CONFIG.spike, 1.2, 3.0),
+    lean: clamp(+load(KEYS.lean, CONFIG.leanEnter) || CONFIG.leanEnter, 8, 25),
+    invert: !!load(KEYS.invert, false)
+  };
+  var debugOn = !!load(KEYS.debug, false);
+
+  /* ---------- dom ---------- */
+  function $(id) { return document.getElementById(id); }
+  var stage = $('stage'), cv = $('cv'), ctx = cv.getContext('2d');
+  var panels = { START: $('pStart'), CALIBRATING: $('pCal'), COUNTDOWN: $('pCount'), PAUSED: $('pPause'), GAMEOVER: $('pOver') };
+
+  /* ---------- state ---------- */
+  var S = {
+    mode: 'START', input: 'touch', dist: 0, t: 0, speed: CONFIG.speedStart,
+    camX: 0, lane: 1, jumpT: -1, jumpY: 0, obs: [], spawnT: 0,
+    lastOpen: [0, 1, 2], pending: null, roll: 0, bobPhase: 0,
+    crashAt: 0, cdStart: 0, newBest: false
+  };
+  var M = {
+    got: false, listening: false, calibrated: false, g0: 9.81, u: [0, 1, 0], neutral: 0,
+    r: 1, rf: 1, mag: 1, leanRaw: 0, leanF: 0, state: 'IDLE', stateAt: 0,
+    samples: [], calStart: 0, token: 0
+  };
+
+  /* ---------- audio ---------- */
+  var actx = null;
+  function initAudio() {
+    try {
+      if (!actx) {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) actx = new AC();
+      }
+      if (actx && actx.state === 'suspended') actx.resume();
+    } catch (e) { actx = null; }
+  }
+  function playJump() {
+    if (!actx) return;
+    try {
+      var t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(320, t);
+      o.frequency.exponentialRampToValueAtTime(720, t + 0.15);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      o.connect(g); g.connect(actx.destination);
+      o.start(t); o.stop(t + 0.18);
+    } catch (e) {}
+  }
+  function playCrash() {
+    if (!actx) return;
+    try {
+      var t = actx.currentTime, n = Math.floor(actx.sampleRate * 0.3);
+      var buf = actx.createBuffer(1, n, actx.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      var src = actx.createBufferSource(); src.buffer = buf;
+      var f = actx.createBiquadFilter(); f.type = 'lowpass';
+      f.frequency.setValueAtTime(1200, t);
+      f.frequency.exponentialRampToValueAtTime(200, t + 0.3);
+      var g = actx.createGain();
+      g.gain.setValueAtTime(0.5, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+      src.connect(f); f.connect(g); g.connect(actx.destination);
+      src.start(t); src.stop(t + 0.31);
+    } catch (e) {}
+  }
+
+  /* ---------- wake lock ---------- */
+  var wakeLock = null, wantWake = false;
+  function requestWake() {
+    wantWake = true;
+    if (!('wakeLock' in navigator)) return;
+    try {
+      navigator.wakeLock.request('screen').then(function (l) {
+        wakeLock = l;
+        l.addEventListener('release', function () { wakeLock = null; });
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') {
+      if (wantWake && !wakeLock) requestWake();
+    } else if (S.mode === 'RUNNING' || S.mode === 'COUNTDOWN') {
+      setMode('PAUSED');
+    }
+  });
+
+  /* ---------- toast ---------- */
+  var toastTimer = 0;
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 3200);
+  }
+
+  /* ---------- sensors ---------- */
+  function isLandscape() {
+    try {
+      if (screen.orientation && typeof screen.orientation.type === 'string') {
+        return screen.orientation.type.indexOf('landscape') === 0;
+      }
+    } catch (e) {}
+    if (typeof window.orientation === 'number') return Math.abs(window.orientation) === 90;
+    return false;
+  }
+
+  function fallbackTouch(msg) {
+    M.token++;
+    S.input = 'touch';
+    if (msg) toast(msg);
+    resetGame();
+    setMode('COUNTDOWN');
+  }
+
+  function attachMotion() {
+    if (!M.listening) {
+      window.addEventListener('devicemotion', onMotion);
+      M.listening = true;
+    }
+  }
+
+  function requestMotion() {
+    initAudio();
+    requestWake();
+    S.input = 'motion';
+    if (!window.isSecureContext || typeof window.DeviceMotionEvent === 'undefined') {
+      fallbackTouch('Motion needs a phone and HTTPS. Using touch and keys.');
+      return;
+    }
+    var ps = [];
+    try {
+      if (typeof DeviceMotionEvent.requestPermission === 'function') {
+        ps.push(DeviceMotionEvent.requestPermission());
+      }
+      if (typeof window.DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        ps.push(DeviceOrientationEvent.requestPermission());
+      }
+    } catch (e) {
+      fallbackTouch('Motion permission failed. Using touch and keys.');
+      return;
+    }
+    Promise.all(ps).then(function (res) {
+      for (var i = 0; i < res.length; i++) {
+        if (res[i] !== 'granted') {
+          fallbackTouch('Motion permission was denied. Using touch and keys.');
+          return;
+        }
+      }
+      attachMotion();
+      M.got = false;
+      var tok = ++M.token;
+      startCalibration();
+      setTimeout(function () {
+        if (tok === M.token && !M.got && S.input === 'motion') {
+          fallbackTouch('No motion data arrived. Using touch and keys.');
+        }
+      }, 1000);
+    }).catch(function () {
+      fallbackTouch('Motion permission failed. Using touch and keys.');
+    });
+  }
+
+  function calMsg(txt) { $('calMsg').textContent = txt; }
+  function calProgress(f) { $('calBar').style.width = Math.round(f * 100) + '%'; }
+
+  function startCalibration() {
+    M.samples = [];
+    M.calStart = performance.now();
+    M.calibrated = false;
+    M.state = 'IDLE';
+    calMsg('Hold your phone upright in front of you and stand still.');
+    calProgress(0);
+    setMode('CALIBRATING');
+  }
+
+  function calibrate(now) {
+    if (isLandscape()) {
+      M.samples = []; M.calStart = now; calProgress(0);
+      calMsg('Turn your phone upright to portrait to calibrate.');
+      return;
+    }
+    var el = (now - M.calStart) / 1000;
+    calProgress(Math.min(1, el / CONFIG.calSeconds));
+    if (el < CONFIG.calSeconds) return;
+    var s = M.samples, n = s.length;
+    if (n < 10) { M.calStart = now; M.samples = []; return; }
+    var mx = 0, my = 0, mz = 0, mm = 0, i, mags = [];
+    for (i = 0; i < n; i++) {
+      mx += s[i][0]; my += s[i][1]; mz += s[i][2];
+      var m = Math.sqrt(s[i][0] * s[i][0] + s[i][1] * s[i][1] + s[i][2] * s[i][2]);
+      mags.push(m); mm += m;
+    }
+    mx /= n; my /= n; mz /= n; mm /= n;
+    var v = 0;
+    for (i = 0; i < n; i++) v += (mags[i] - mm) * (mags[i] - mm);
+    var sd = Math.sqrt(v / n);
+    var g = Math.sqrt(mx * mx + my * my + mz * mz);
+    if (sd > CONFIG.calStill || g < 1) {
+      M.samples = []; M.calStart = now; calProgress(0);
+      calMsg('Too much movement. Hold still and it will try again.');
+      return;
+    }
+    M.g0 = g;
+    M.u = [mx / g, my / g, mz / g];
+    M.neutral = Math.atan2(mx, my) * 180 / Math.PI;
+    M.calibrated = true;
+    M.state = 'IDLE'; M.rf = 1; M.leanF = 0;
+    resetGame();
+    setMode('COUNTDOWN');
+  }
+
+  function laneFromLean(cur, lean) {
+    var enter = settings.lean, exit = CONFIG.leanExit;
+    if (lean > enter) return 2;
+    if (lean < -enter) return 0;
+    if (cur === 2 && lean < exit) return 1;
+    if (cur === 0 && lean > -exit) return 1;
+    return cur;
+  }
+
+  function onMotion(e) {
+    var a = e.accelerationIncludingGravity;
+    if (!a || a.x === null || a.x === undefined) return;
+    M.got = true;
+    var ax = +a.x || 0, ay = +a.y || 0, az = +a.z || 0;
+    if (S.mode === 'CALIBRATING') {
+      M.samples.push([ax, ay, az]);
+      if (M.samples.length > 900) M.samples.shift();
+      return;
+    }
+    if (!M.calibrated || S.input !== 'motion') return;
+    var now = performance.now();
+    var mag = Math.sqrt(ax * ax + ay * ay + az * az) / M.g0;
+    var r = (ax * M.u[0] + ay * M.u[1] + az * M.u[2]) / M.g0;
+    M.mag = mag; M.r = r;
+    M.rf += CONFIG.vertAlpha * (r - M.rf);
+
+    if (M.state === 'IDLE') {
+      if (M.rf > settings.spike) { M.state = 'ARMED'; M.stateAt = now; }
+    } else if (M.state === 'ARMED') {
+      if (M.rf < CONFIG.freeFall) {
+        M.state = 'COOLDOWN'; M.stateAt = now;
+        triggerJump();
+      } else if (now - M.stateAt > CONFIG.armWindow) {
+        M.state = 'IDLE';
+      }
+    } else if (M.state === 'COOLDOWN') {
+      if (now - M.stateAt > CONFIG.cooldown) M.state = 'IDLE';
+    }
+
+    var raw = M.neutral - Math.atan2(ax, ay) * 180 / Math.PI;
+    while (raw > 180) raw -= 360;
+    while (raw < -180) raw += 360;
+    if (settings.invert) raw = -raw;
+    M.leanRaw = raw;
+    if (M.state === 'IDLE' && mag >= CONFIG.bandLo && mag <= CONFIG.bandHi) {
+      M.leanF += CONFIG.rollAlpha * (raw - M.leanF);
+    }
+    if (S.mode === 'RUNNING' || S.mode === 'COUNTDOWN') S.lane = laneFromLean(S.lane, M.leanF);
+  }
+
+  /* ---------- input ---------- */
+  function stepLane(d) { S.lane = clamp(S.lane + d, 0, 2); }
+  function triggerJump() {
+    if (S.mode !== 'RUNNING' || S.jumpT >= 0) return;
+    S.jumpT = 0;
+    playJump();
+  }
+  function isSpace(e) { return e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar'; }
+
+  function onKey(e) {
+    var k = e.key;
+    if (e.target && e.target.tagName === 'BUTTON' && S.mode !== 'RUNNING' && (k === 'Enter' || isSpace(e))) return;
+    if (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp' || k === 'ArrowDown' || isSpace(e)) e.preventDefault();
+    if (S.mode === 'RUNNING') {
+      if (k === 'ArrowLeft') stepLane(-1);
+      else if (k === 'ArrowRight') stepLane(1);
+      else if ((isSpace(e) || k === 'ArrowUp') && !e.repeat) triggerJump();
+      else if (k === 'p' || k === 'P' || k === 'Escape') setMode('PAUSED');
+    } else if (S.mode === 'PAUSED') {
+      if (k === 'p' || k === 'P' || k === 'Escape' || isSpace(e)) resume();
+    } else if (S.mode === 'START') {
+      if ((k === 'Enter' || isSpace(e)) && !e.repeat) startTouch();
+    } else if (S.mode === 'GAMEOVER') {
+      if ((k === 'Enter' || isSpace(e)) && !e.repeat && performance.now() - S.crashAt > 700) runAgain();
+    }
+  }
+  document.addEventListener('keydown', onKey);
+
+  var ptr = null;
+  cv.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    ptr = { x: e.clientX, y: e.clientY, id: e.pointerId };
+  });
+  cv.addEventListener('pointerup', function (e) {
+    if (!ptr || ptr.id !== e.pointerId) return;
+    var dx = e.clientX - ptr.x, dy = e.clientY - ptr.y;
+    ptr = null;
+    if (S.mode !== 'RUNNING') return;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) stepLane(dx > 0 ? 1 : -1);
+    else if (Math.sqrt(dx * dx + dy * dy) < 15) triggerJump();
+  });
+  cv.addEventListener('pointercancel', function () { ptr = null; });
+
+  /* ---------- game ---------- */
+  function rnd(n) { return Math.floor(Math.random() * n); }
+  function othersThan(b) { var o = []; for (var i = 0; i < 3; i++) if (i !== b) o.push(i); return o; }
+
+  function makeRow() {
+    var p = rnd(4), items = [], open, i, b;
+    if (p === 0) {
+      for (i = 0; i < 3; i++) items.push({ type: 'h', lane: i });
+      open = [0, 1, 2];
+    } else if (p === 1) {
+      b = rnd(3);
+      items.push({ type: 'b', lane: b });
+      open = othersThan(b);
+    } else if (p === 2) {
+      var o = rnd(3);
+      for (i = 0; i < 3; i++) if (i !== o) items.push({ type: 'b', lane: i });
+      open = [o];
+    } else {
+      b = rnd(3);
+      var h = (b + 1 + rnd(2)) % 3;
+      items.push({ type: 'b', lane: b });
+      items.push({ type: 'h', lane: h });
+      open = othersThan(b);
+    }
+    return { items: items, open: open };
+  }
+
+  function shiftNeeded(prev, next) {
+    var worst = 0;
+    for (var i = 0; i < prev.length; i++) {
+      var m = 9;
+      for (var j = 0; j < next.length; j++) m = Math.min(m, Math.abs(prev[i] - next[j]));
+      worst = Math.max(worst, m);
+    }
+    return worst;
+  }
+
+  function spawnRow() {
+    var row = S.pending;
+    for (var i = 0; i < row.items.length; i++) {
+      var it = row.items[i];
+      S.obs.push({
+        type: it.type, lane: it.lane, x: CONFIG.lanes[it.lane], z: CONFIG.drawDist,
+        d: it.type === 'b' ? CONFIG.blockD : CONFIG.hurdleD
+      });
+    }
+    S.lastOpen = row.open;
+    S.pending = makeRow();
+    var sh = shiftNeeded(S.lastOpen, S.pending.open);
+    S.spawnT = (sh >= 2 ? CONFIG.gapTwo : CONFIG.gapAdjacent) + Math.random() * CONFIG.gapRand;
+  }
+
+  function resetGame() {
+    S.dist = 0; S.t = 0; S.speed = CONFIG.speedStart;
+    S.camX = 0; S.lane = 1; S.jumpT = -1; S.jumpY = 0;
+    S.obs = []; S.roll = 0; S.bobPhase = 0; S.newBest = false;
+    S.lastOpen = [0, 1, 2];
+    S.pending = makeRow();
+    S.spawnT = CONFIG.opening;
+    updateHud();
+  }
+
+  function checkCollision() {
+    for (var i = 0; i < S.obs.length; i++) {
+      var ob = S.obs[i];
+      if (ob.z < 0.8 && ob.z + ob.d > 0.2 && Math.abs(ob.x - S.camX) < 0.6) {
+        if (ob.type === 'b' || S.jumpY < CONFIG.hurdleH + 0.05) { gameOver(); return; }
+      }
+    }
+  }
+
+  function gameOver() {
+    playCrash();
+    try { if (navigator.vibrate) navigator.vibrate(120); } catch (e) {}
+    S.crashAt = performance.now();
+    var d = Math.floor(S.dist);
+    if (d > best) { best = d; save(KEYS.best, best); S.newBest = true; }
+    var fl = $('flash');
+    fl.classList.add('on');
+    setTimeout(function () { fl.classList.remove('on'); }, 60);
+    $('goDist').textContent = d + ' m';
+    $('goBest').textContent = 'Best ' + best + ' m';
+    if (S.newBest) $('goNew').classList.add('show'); else $('goNew').classList.remove('show');
+    setMode('GAMEOVER');
+  }
+
+  function update(dt) {
+    S.t += dt;
+    S.speed = Math.min(CONFIG.speedCap, CONFIG.speedStart + CONFIG.speedRamp * S.t);
+    var dz = S.speed * dt;
+    S.dist += dz;
+
+    var tx = CONFIG.lanes[S.lane];
+    S.camX += (tx - S.camX) * Math.min(1, CONFIG.laneLerp * dt);
+    S.roll = clamp((tx - S.camX) / 1.2, -1, 1) * CONFIG.maxRoll;
+
+    if (S.jumpT >= 0) {
+      S.jumpT += dt;
+      var p = S.jumpT / CONFIG.airtime;
+      if (p >= 1) { S.jumpT = -1; S.jumpY = 0; }
+      else S.jumpY = CONFIG.peak * 4 * p * (1 - p);
+    }
+    S.bobPhase += dt * CONFIG.bobFreq * 2 * Math.PI;
+
+    var keep = [];
+    for (var i = 0; i < S.obs.length; i++) {
+      S.obs[i].z -= dz;
+      if (S.obs[i].z + S.obs[i].d > -1) keep.push(S.obs[i]);
+    }
+    S.obs = keep;
+
+    S.spawnT -= dt;
+    if (S.spawnT <= 0) spawnRow();
+
+    checkCollision();
+    updateHud();
+  }
+
+  function updateHud() {
+    $('hudDist').textContent = Math.floor(S.dist) + ' m';
+    $('hudSpd').textContent = S.speed.toFixed(1) + ' m/s';
+  }
+
+  /* ---------- modes ---------- */
+  function setMode(m) {
+    S.mode = m;
+    for (var k in panels) {
+      if (Object.prototype.hasOwnProperty.call(panels, k)) {
+        if (k === m) panels[k].classList.add('show'); else panels[k].classList.remove('show');
+      }
+    }
+    var running = (m === 'RUNNING' || m === 'COUNTDOWN' || m === 'PAUSED' || m === 'GAMEOVER');
+    if (running) $('hud').classList.add('show'); else $('hud').classList.remove('show');
+    if (m === 'RUNNING') $('pauseBtn').classList.add('show'); else $('pauseBtn').classList.remove('show');
+    if (m === 'COUNTDOWN') { S.cdStart = performance.now(); $('cdNum').textContent = '3'; }
+    if (m === 'START') refreshBest();
+  }
+
+  function countdown(now) {
+    var rem = 3 - (now - S.cdStart) / 1000;
+    if (rem <= 0) { setMode('RUNNING'); return; }
+    var txt = String(Math.ceil(rem));
+    var el = $('cdNum');
+    if (el.textContent !== txt) el.textContent = txt;
+  }
+
+  function refreshBest() {
+    $('startBest').textContent = best > 0 ? 'Best run ' + best + ' m' : 'No best run yet';
+  }
+
+  function startTouch() {
+    M.token++;
+    initAudio();
+    requestWake();
+    S.input = 'touch';
+    resetGame();
+    setMode('COUNTDOWN');
+  }
+  function resume() { setMode('COUNTDOWN'); }
+  function runAgain() {
+    if (S.input === 'motion' && M.listening) startCalibration();
+    else { resetGame(); setMode('COUNTDOWN'); }
+  }
+  function toMenu() { M.token++; M.state = 'IDLE'; setMode('START'); }
+
+  function bindBtn(id, fn) {
+    $(id).addEventListener('click', function (e) {
+      if (e.currentTarget && e.currentTarget.blur) e.currentTarget.blur();
+      fn();
+    });
+  }
+  bindBtn('bMotion', requestMotion);
+  bindBtn('bTouch', startTouch);
+  bindBtn('bCalCancel', toMenu);
+  bindBtn('bResume', resume);
+  bindBtn('bPauseMenu', toMenu);
+  bindBtn('bAgain', runAgain);
+  bindBtn('bMenu', toMenu);
+  bindBtn('pauseBtn', function () { if (S.mode === 'RUNNING' || S.mode === 'COUNTDOWN') setMode('PAUSED'); });
+
+  /* ---------- debug ---------- */
+  function applyDebug() {
+    if (debugOn) { $('debug').classList.add('show'); $('dbgBtn').classList.add('on'); }
+    else { $('debug').classList.remove('show'); $('dbgBtn').classList.remove('on'); }
+    $('dbgBtn').setAttribute('aria-pressed', debugOn ? 'true' : 'false');
+    $('dSpike').textContent = settings.spike.toFixed(1);
+    $('dLean').textContent = String(settings.lean);
+    $('invert').checked = settings.invert;
+  }
+  bindBtn('dbgBtn', function () { debugOn = !debugOn; save(KEYS.debug, debugOn); applyDebug(); });
+  bindBtn('spMinus', function () { settings.spike = Math.round(clamp(settings.spike - 0.1, 1.2, 3.0) * 10) / 10; save(KEYS.spike, settings.spike); applyDebug(); });
+  bindBtn('spPlus', function () { settings.spike = Math.round(clamp(settings.spike + 0.1, 1.2, 3.0) * 10) / 10; save(KEYS.spike, settings.spike); applyDebug(); });
+  bindBtn('lnMinus', function () { settings.lean = clamp(settings.lean - 1, 8, 25); save(KEYS.lean, settings.lean); applyDebug(); });
+  bindBtn('lnPlus', function () { settings.lean = clamp(settings.lean + 1, 8, 25); save(KEYS.lean, settings.lean); applyDebug(); });
+  $('invert').addEventListener('change', function () {
+    settings.invert = !!this.checked;
+    save(KEYS.invert, settings.invert);
+    M.leanF = -M.leanF;
+  });
+
+  var LANE_NAMES = ['left', 'center', 'right'];
+  var dbgLast = 0;
+  function updateDebug(now, fps) {
+    if (now - dbgLast < 100) return;
+    dbgLast = now;
+    var live = M.calibrated && S.input === 'motion';
+    $('dR').textContent = live ? M.rf.toFixed(2) : '-';
+    $('dMag').textContent = live ? M.mag.toFixed(2) : '-';
+    $('dRoll').textContent = live ? M.leanF.toFixed(1) : '-';
+    $('dLane').textContent = LANE_NAMES[S.lane];
+    $('dJump').textContent = live ? M.state : (S.jumpT >= 0 ? 'AIR' : 'GROUND');
+    $('dFps').textContent = String(Math.round(fps));
+    $('dThr').textContent = settings.spike.toFixed(1) + ' / ' + CONFIG.freeFall + ' / ' + settings.lean + ' / ' + CONFIG.leanExit;
+  }
+
+  /* ---------- renderer ---------- */
+  var W = 1, H = 1, DPR = 1, F = 1, HZ = 1, camX = 0, camY = CONFIG.camH;
+  var COL = {
+    track: [181, 64, 47], dash: [206, 104, 86], line: [243, 241, 236],
+    mat: [44, 93, 168], matSide: [30, 64, 120], matTop: [86, 138, 210], seam: [24, 52, 98],
+    chalk: [243, 241, 236], ink: [22, 37, 63], post: [150, 158, 170], foot: [64, 70, 82],
+    fog: [176, 146, 128]
+  };
+  function rgb(c) { return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'; }
+  function mix(c, t) {
+    return 'rgb(' + Math.round(c[0] + (COL.fog[0] - c[0]) * t) + ',' +
+      Math.round(c[1] + (COL.fog[1] - c[1]) * t) + ',' +
+      Math.round(c[2] + (COL.fog[2] - c[2]) * t) + ')';
+  }
+
+  function resize() {
+    var r = stage.getBoundingClientRect();
+    W = Math.max(1, r.width); H = Math.max(1, r.height);
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    F = CONFIG.focal * H;
+    HZ = H * 0.38;
+  }
+
+  function project(x, y, z) {
+    if (z < CONFIG.near - 1e-6) return null;
+    var s = F / z;
+    return { x: W / 2 + (x - camX) * s, y: HZ - (y - camY) * s, s: s };
+  }
+
+  function poly(pts, color) {
+    ctx.beginPath();
+    for (var i = 0; i < pts.length; i++) {
+      var p = project(pts[i][0], pts[i][1], pts[i][2]);
+      if (!p) return;
+      if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  function groundStrip(x0, x1, z0, z1, color) {
+    var a = Math.max(z0, CONFIG.near), b = Math.min(z1, CONFIG.drawDist);
+    if (b <= a) return;
+    poly([[x0, 0, a], [x1, 0, a], [x1, 0, b], [x0, 0, b]], color);
+  }
+
+  function fogAt(z) { return clamp((z - 18) / (CONFIG.drawDist - 18), 0, 1) * 0.9; }
+
+  function drawBlock(ob) {
+    var x0 = ob.x - 0.5, x1 = ob.x + 0.5, h = CONFIG.blockH;
+    var zb = ob.z + ob.d;
+    if (zb <= CONFIG.near) return;
+    var z0 = Math.max(ob.z, CONFIG.near), t = fogAt(ob.z);
+    if (camX < x0) poly([[x0, 0, z0], [x0, h, z0], [x0, h, zb], [x0, 0, zb]], mix(COL.matSide, t));
+    if (camX > x1) poly([[x1, 0, z0], [x1, h, z0], [x1, h, zb], [x1, 0, zb]], mix(COL.matSide, t));
+    if (camY > h) poly([[x0, h, z0], [x1, h, z0], [x1, h, zb], [x0, h, zb]], mix(COL.matTop, t));
+    poly([[x0, 0, z0], [x1, 0, z0], [x1, h, z0], [x0, h, z0]], mix(COL.mat, t));
+    var seam = mix(COL.seam, t);
+    for (var k = 1; k < 3; k++) {
+      var y = h * k / 3;
+      poly([[x0, y - 0.035, z0], [x1, y - 0.035, z0], [x1, y + 0.035, z0], [x0, y + 0.035, z0]], seam);
+    }
+  }
+
+  function drawHurdle(ob) {
+    var z = ob.z;
+    if (z < CONFIG.near) return;
+    var x0 = ob.x - 0.46, x1 = ob.x + 0.46, h = CONFIG.hurdleH, t = fogAt(z);
+    var foot = mix(COL.foot, t), post = mix(COL.post, t);
+    groundStrip(x0 - 0.02, x0 + 0.07, z, z + 0.45, foot);
+    groundStrip(x1 - 0.07, x1 + 0.02, z, z + 0.45, foot);
+    poly([[x0, 0, z], [x0 + 0.05, 0, z], [x0 + 0.05, h, z], [x0, h, z]], post);
+    poly([[x1 - 0.05, 0, z], [x1, 0, z], [x1, h, z], [x1 - 0.05, h, z]], post);
+    var segs = 6, w = (x1 - x0) / segs;
+    for (var i = 0; i < segs; i++) {
+      var a = x0 + i * w, c = (i % 2 === 0) ? COL.chalk : COL.ink;
+      poly([[a, h - 0.1, z], [a + w, h - 0.1, z], [a + w, h, z], [a, h, z]], mix(c, t));
+    }
+  }
+
+  function drawLight(sx, poleTop) {
+    ctx.fillStyle = 'rgba(10,18,32,0.9)';
+    ctx.fillRect(sx - 1.5, poleTop, 3, HZ - poleTop);
+    var gr = ctx.createRadialGradient(sx, poleTop, 0, sx, poleTop, H * 0.14);
+    gr.addColorStop(0, 'rgba(255,240,210,0.55)');
+    gr.addColorStop(1, 'rgba(255,240,210,0)');
+    ctx.fillStyle = gr;
+    ctx.fillRect(sx - H * 0.14, poleTop - H * 0.14, H * 0.28, H * 0.28);
+    ctx.fillStyle = '#FFF4DC';
+    ctx.fillRect(sx - 9, poleTop - 4, 18, 7);
+  }
+
+  function draw() {
+    camX = S.camX;
+    var bob = (S.mode === 'RUNNING' && S.jumpT < 0) ? Math.sin(S.bobPhase) * CONFIG.bobAmp : 0;
+    camY = CONFIG.camH + S.jumpY + bob;
+
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.save();
+    ctx.translate(W / 2, H / 2);
+    ctx.rotate(-S.roll * Math.PI / 180);
+    ctx.translate(-W / 2, -H / 2);
+    var ext = Math.max(W, H);
+
+    var sky = ctx.createLinearGradient(0, HZ - H * 0.7, 0, HZ);
+    sky.addColorStop(0, '#16253F');
+    sky.addColorStop(0.6, '#3A4A6C');
+    sky.addColorStop(1, '#E7B98A');
+    ctx.fillStyle = sky;
+    ctx.fillRect(-ext, -ext, W + 2 * ext, HZ + ext + 1);
+
+    drawLight(W * 0.1, HZ - H * 0.17);
+    drawLight(W * 0.9, HZ - H * 0.17);
+    ctx.fillStyle = 'rgba(10,18,32,0.55)';
+    ctx.fillRect(-ext, HZ - H * 0.028, W + 2 * ext, H * 0.028);
+
+    ctx.fillStyle = '#2E6B45';
+    ctx.fillRect(-ext, HZ, W + 2 * ext, H + ext);
+
+    var th = CONFIG.trackHalf + 0.1;
+    groundStrip(-th, th, CONFIG.near, CONFIG.drawDist, rgb(COL.track));
+
+    var period = 4, off = S.dist % period, dash = rgb(COL.dash), k, zd, i;
+    for (k = 0; k * period - off < CONFIG.drawDist; k++) {
+      zd = k * period - off;
+      if (zd + 1 < CONFIG.near) continue;
+      for (i = 0; i < 3; i++) {
+        groundStrip(CONFIG.lanes[i] - 0.04, CONFIG.lanes[i] + 0.04, zd, zd + 1, dash);
+      }
+    }
+    var lines = [-1.8, -0.6, 0.6, 1.8], lc = rgb(COL.line);
+    for (i = 0; i < lines.length; i++) {
+      groundStrip(lines[i] - 0.03, lines[i] + 0.03, CONFIG.near, CONFIG.drawDist, lc);
+    }
+
+    var fg = ctx.createLinearGradient(0, HZ, 0, HZ + H * 0.12);
+    fg.addColorStop(0, 'rgba(176,146,128,1)');
+    fg.addColorStop(1, 'rgba(176,146,128,0)');
+    ctx.fillStyle = fg;
+    ctx.fillRect(-ext, HZ, W + 2 * ext, H * 0.12);
+
+    var list = S.obs.slice();
+    list.sort(function (a, b) {
+      if (b.z !== a.z) return b.z - a.z;
+      return Math.abs(b.x - camX) - Math.abs(a.x - camX);
+    });
+    for (i = 0; i < list.length; i++) {
+      if (list[i].type === 'b') drawBlock(list[i]); else drawHurdle(list[i]);
+    }
+    ctx.restore();
+  }
+
+  /* ---------- loop ---------- */
+  var last = 0, fps = 60;
+  function frame(now) {
+    var raw = last ? (now - last) / 1000 : 0;
+    last = now;
+    if (raw > 0) fps += (1 / raw - fps) * 0.1;
+    var dt = Math.min(raw, 0.05);
+    switch (S.mode) {
+      case 'START': S.dist += 3 * dt; break;
+      case 'CALIBRATING': calibrate(now); break;
+      case 'COUNTDOWN': countdown(now); break;
+      case 'RUNNING': update(dt); break;
+      case 'PAUSED': break;
+      case 'GAMEOVER': break;
+    }
+    draw();
+    if (debugOn) updateDebug(now, fps);
+    requestAnimationFrame(frame);
+  }
+
+  window.addEventListener('resize', resize);
+  if (typeof ResizeObserver === 'function') new ResizeObserver(resize).observe(stage);
+  resize();
+  applyDebug();
+  refreshBest();
+  resetGame();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
